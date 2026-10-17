@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electronic Component Inventory System</title>
+<style>
+:root {
+  --navy: #14213d;
+  --blue: #2563eb;
+  --light: #f3f6fb;
+  --text: #1d2939;
+  --muted: #667085;
+  --border: #e4e9f1;
+  --green: #13845b;
+  --orange: #a15c07;
+  --red: #c0394b;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--light);
+  font-family: Arial, sans-serif;
+  color: var(--text);
+}
+header {
+  background: var(--navy);
+  color: white;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+header h1 { font-size: 23px; margin: 0 0 6px; }
+header p { color: #c4d0e3; margin: 0; }
+button, input, select { font: inherit; }
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.primary { background: var(--blue); color: white; }
+.secondary { background: #e9efff; color: #234cb8; }
+.danger { background: #fff0f1; color: var(--red); }
+main { max-width: 1200px; margin: 25px auto; padding: 0 20px; }
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.heading h2 { margin: 0 0 5px; }
+.heading p { color: var(--muted); margin: 0; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 22px;
+}
+.stat, .panel {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 19px;
+  margin-bottom: 20px;
+}
+.stat-label { color: var(--muted); font-size: 13px; }
+.stat-number { font-size: 30px; font-weight: bold; margin: 10px 0; }
+.filters { display: flex; gap: 9px; flex-wrap: wrap; }
+.filters input, .filters select {
+  padding: 10px;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  background: white;
+}
+.panel-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 17px;
+}
+.panel-top h3 { margin: 0; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+th {
+  text-align: left;
+  background: #f7f9fc;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 13px;
+}
+td { padding: 13px; border-bottom: 1px solid #edf0f5; }
+.component-name { font-weight: bold; }
+.component-id { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.badge {
+  display: inline-block;
+  border-radius: 20px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.in { background: #e6f7ef; color: var(--green); }
+.low { background: #fff3dd; color: var(--orange); }
+.out { background: #ffebed; color: var(--red); }
+.actions { display: flex; gap: 5px; }
+.actions button { padding: 7px 10px; }
+.notice {
+  background: #fff8e9;
+  border: 1px solid #f4dfad;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 22px;
+}
+footer {
+  text-align: center;
+  color: var(--muted);
+  padding: 20px;
+  font-size: 12px;
+}
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: #10182899;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: white;
+  padding: 24px;
+  border-radius: 14px;
+  width: min(550px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal h2 { margin-top: 0; }
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; font-weight: bold; }
+.field input, .field select {
+  padding: 11px;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  width: 100%;
+}
+.full { grid-column: 1 / -1; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+.empty { text-align: center; padding: 25px; color: var(--muted); }
+@media(max-width: 800px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media(max-width: 550px) {
+  main { padding: 0 12px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .full { grid-column: auto; }
+  .filters, .filters input, .filters select { width: 100%; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div>
+    <h1>Electronic Component Inventory</h1>
+    <p>Manage components, quantities, categories and stock levels</p>
+  </div>
+  <button class="primary" id="addBtn">+ Add Component</button>
+</header>
+
+<main>
+  <div class="heading">
+    <div>
+      <h2>Inventory Dashboard</h2>
+      <p>Overview of your electronics laboratory components.</p>
+    </div>
+    <button class="secondary" id="exportBtn">Export CSV</button>
+  </div>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">COMPONENT TYPES</div>
+      <div class="stat-number" id="types">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">TOTAL QUANTITY</div>
+      <div class="stat-number" id="quantity">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">LOW STOCK</div>
+      <div class="stat-number" id="lowCount">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">OUT OF STOCK</div>
+      <div class="stat-number" id="outCount">0</div>
+    </div>
+  </section>
+
+  <section class="notice">
+    <strong>⚠ Stock Alerts</strong>
+    <div id="lowMessage"></div>
+    <ul id="lowList"></ul>
+  </section>
+
+  <section class="panel">
+    <div class="panel-top">
+      <h3>Component List</h3>
+      <div class="filters">
+        <input id="search" placeholder="Search components...">
+        <select id="categoryFilter">
+          <option value="">All Categories</option>
+          <option>Resistor</option>
+          <option>Capacitor</option>
+          <option>Diode</option>
+          <option>Transistor</option>
+          <option>IC</option>
+          <option>LED</option>
+          <option>Sensor</option>
+          <option>Other</option>
+        </select>
+        <select id="statusFilter">
+          <option value="">All Stock Statuses</option>
+          <option value="in">In Stock</option>
+          <option value="low">Low Stock</option>
+          <option value="out">Out of Stock</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Reorder Level</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" hidden>
+        No components found.
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Electronic Component Inventory Manager | College Mini Project
+</footer>
+
+<div class="modal-bg" id="modalBg">
+  <form class="modal" id="componentForm">
+    <h2 id="modalTitle">Add Component</h2>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="id">Component ID</label>
+        <input id="id" required placeholder="RES-001">
+      </div>
+      <div class="field">
+        <label for="name">Component Name</label>
+        <input id="name" required placeholder="220 Ohm Resistor">
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <select id="category">
+          <option>Resistor</option>
+          <option>Capacitor</option>
+          <option>Diode</option>
+          <option>Transistor</option>
+          <option>IC</option>
+          <option>LED</option>
+          <option>Sensor</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="qty">Quantity</label>
+        <input id="qty" type="number" min="0" step="1" value="10" required>
+      </div>
+      <div class="field">
+        <label for="reorder">Reorder Level</label>
+        <input id="reorder" type="number" min="0" step="1" value="5" required>
+      </div>
+      <div class="field">
+        <label for="location">Storage Location</label>
+        <input id="location" placeholder="Drawer A1">
+      </div>
+      <div class="field full">
+        <label for="notes">Notes</label>
+        <input id="notes" placeholder="Voltage, value or specifications">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="secondary" id="cancelBtn">Cancel</button>
+      <button type="submit" class="primary">Save Component</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const STORAGE_KEY = "electronic_inventory";
+
+const sampleData = [
+  {
+    id: "RES-001", name: "220 Ohm Resistor",
+    category: "Resistor", qty: 120, reorder: 30,
+    location: "Drawer A1", notes: "Quarter watt"
+  },
+  {
+    id: "CAP-001", name: "100uF Capacitor",
+    category: "Capacitor", qty: 18, reorder: 20,
+    location: "Drawer B2", notes: "25V"
+  },
+  {
+    id: "DIO-001", name: "1N4007 Diode",
+    category: "Diode", qty: 65, reorder: 20,
+    location: "Drawer C1", notes: "Rectifier"
+  },
+  {
+    id: "LED-001", name: "Red LED",
+    category: "LED", qty: 8, reorder: 15,
+    location: "Drawer A3", notes: "5mm"
+  },
+  {
+    id: "IC-001", name: "NE555 Timer IC",
+    category: "IC", qty: 24, reorder: 10,
+    location: "IC Cabinet", notes: "DIP-8"
+  },
+  {
+    id: "TRN-001", name: "BC547 Transistor",
+    category: "Transistor", qty: 0, reorder: 12,
+    location: "Drawer C4", notes: "NPN"
+  }
+];
+
+let components = loadData();
+let editingId = null;
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : sampleData.map(x => ({...x}));
+  } catch {
+    return sampleData.map(x => ({...x}));
+  }
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(components));
+  } catch {
+    alert("Unable to save data in browser storage.");
+  }
+}
+
+function getStatus(component) {
+  if (component.qty === 0) return "out";
+  if (component.qty <= component.reorder) return "low";
+  return "in";
+}
+
+function statusText(status) {
+  if (status === "out") return "Out of Stock";
+  if (status === "low") return "Low Stock";
+  return "In Stock";
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  })[ch]);
+}
+
+function render() {
+  const low = components.filter(c => getStatus(c) !== "in");
+  const out = components.filter(c => getStatus(c) === "out");
+
+  document.getElementById("types").textContent = components.length;
+  document.getElementById("quantity").textContent =
+    components.reduce((sum, c) => sum + c.qty, 0);
+  document.getElementById("lowCount").textContent = low.length;
+  document.getElementById("outCount").textContent = out.length;
+
+  document.getElementById("lowMessage").textContent =
+    low.length
+      ? low.length + " component(s) need attention:"
+      : "All components are sufficiently stocked.";
+
+  document.getElementById("lowList").innerHTML = low.map(c =>
+    `<li>${escapeHTML(c.name)} — ${c.qty} units remaining; reorder at ${c.reorder}</li>`
+  ).join("");
+
+  const search = document.getElementById("search").value.toLowerCase().trim();
+  const category = document.getElementById("categoryFilter").value;
+  const status = document.getElementById("statusFilter").value;
+
+  const filtered = components.filter(c => {
+    const matchesSearch =
+      (c.name + " " + c.id + " " + c.category + " " +
+       c.location + " " + c.notes).toLowerCase().includes(search);
+
+    return matchesSearch &&
+      (!category || c.category === category) &&
+      (!status || getStatus(c) === status);
+  });
+
+  document.getElementById("rows").innerHTML = filtered.map(c => `
+    <tr>
+      <td>
+        <div class="component-name">${escapeHTML(c.name)}</div>
+        <div class="component-id">${escapeHTML(c.id)}</div>
+      </td>
+      <td>${escapeHTML(c.category)}</td>
+      <td><strong>${c.qty}</strong></td>
+      <td>${c.reorder}</td>
+      <td>
+        <span class="badge ${getStatus(c)}">
+          ${statusText(getStatus(c))}
+        </span>
+      </td>
+      <td>
+        <div class="actions">
+          <button class="secondary"
+            onclick="changeQuantity('${escapeHTML(c.id)}', 1)">+</button>
+          <button class="secondary"
+            onclick="changeQuantity('${escapeHTML(c.id)}', -1)">−</button>
+          <button class="secondary"
+            onclick="editComponent('${escapeHTML(c.id)}')">Edit</button>
+          <button class="danger"
+            onclick="deleteComponent('${escapeHTML(c.id)}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  document.getElementById("empty").hidden = filtered.length > 0;
+}
+
+function openForm(id = null) {
+  editingId = id;
+  document.getElementById("componentForm").reset();
+  document.getElementById("modalTitle").textContent =
+    id ? "Edit Component" : "Add Component";
+
+  const idInput = document.getElementById("id");
+  idInput.disabled = Boolean(id);
+
+  if (id) {
+    const c = components.find(x => x.id === id);
+    if (!c) return;
+
+    idInput.value = c.id;
+    document.getElementById("name").value = c.name;
+    document.getElementById("category").value = c.category;
+    document.getElementById("qty").value = c.qty;
+    document.getElementById("reorder").value = c.reorder;
+    document.getElementById("location").value = c.location || "";
+    document.getElementById("notes").value = c.notes || "";
+  } else {
+    document.getElementById("qty").value = 10;
+    document.getElementById("reorder").value = 5;
+  }
+
+  document.getElementById("modalBg").classList.add("open");
+}
+
+function closeForm() {
+  document.getElementById("modalBg").classList.remove("open");
+  document.getElementById("id").disabled = false;
+}
+
+function editComponent(id) {
+  openForm(id);
+}
+
+function deleteComponent(id) {
+  const component = components.find(c => c.id === id);
+  if (!component) return;
+
+  if (confirm("Delete " + component.name + "?")) {
+    components = components.filter(c => c.id !== id);
+    saveData();
+    render();
+  }
+}
+
+function changeQuantity(id, amount) {
+  const c = components.find(x => x.id === id);
+  if (!c) return;
+
+  if (c.qty + amount < 0) {
+    alert("Quantity cannot be less than zero.");
+    return;
+  }
+
+  c.qty += amount;
+  saveData();
+  render();
+}
+
+document.getElementById("componentForm").addEventListener("submit", event => {
+  event.preventDefault();
+
+  const id = document.getElementById("id").value.trim().toUpperCase();
+  const name = document.getElementById("name").value.trim();
+  const category = document.getElementById("category").value;
+  const qty = Number(document.getElementById("qty").value);
+  const reorder = Number(document.getElementById("reorder").value);
+  const location = document.getElementById("location").value.trim();
+  const notes = document.getElementById("notes").value.trim();
+
+  if (!editingId && components.some(c => c.id === id)) {
+    alert("This component ID already exists.");
+    return;
+  }
+
+  if (!id || !name || !Number.isInteger(qty) || qty < 0 ||
+      !Number.isInteger(reorder) || reorder < 0) {
+    alert("Enter valid component details and quantities.");
+    return;
+  }
+
+  const record = {id, name, category, qty, reorder, location, notes};
+
+  if (editingId) {
+    components = components.map(c => c.id === editingId ? record : c);
+  } else {
+    components.unshift(record);
+  }
+
+  saveData();
+  closeForm();
+  render();
+});
+
+document.getElementById("addBtn").onclick = () => openForm();
+document.getElementById("cancelBtn").onclick = closeForm;
+document.getElementById("search").addEventListener("input", render);
+document.getElementById("categoryFilter").addEventListener("change", render);
+document.getElementById("statusFilter").addEventListener("change", render);
+
+document.getElementById("exportBtn").onclick = () => {
+  const headers = [
+    "ID", "Name", "Category", "Quantity",
+    "Reorder Level", "Location", "Notes", "Status"
+  ];
+
+  const rows = components.map(c => [
+    c.id, c.name, c.category, c.qty,
+    c.reorder, c.location, c.notes,
+    statusText(getStatus(c))
+  ]);
+
+  const csv = [headers, ...rows].map(row =>
+    row.map(value =>
+      '"' + String(value ?? "").replace(/"/g, '""') + '"'
+    ).join(",")
+  ).join("\r\n");
+
+  const blob = new Blob(["\uFEFF" + csv], {
+    type: "text/csv;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "electronic-inventory.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById("modalBg").addEventListener("click", event => {
+  if (event.target.id === "modalBg") closeForm();
+});
+
+render();
+</script>
+</body>
+</html>
